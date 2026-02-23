@@ -35,10 +35,17 @@ func (c *ProjectController) Create(ctx *gin.Context) {
 
 func (c *ProjectController) GetByID(ctx *gin.Context) {
 	id := ctx.Param("id")
+	userID, _ := ctx.Get("user_id")
+	userRole, _ := ctx.Get("user_role")
 
-	project, err := c.projectService.GetByID(id)
+	project, err := c.projectService.GetByID(id, userID.(string), userRole.(string))
 	if err != nil {
-		utils.ErrorResponse(ctx, http.StatusNotFound, err.Error())
+		if err.Error() == "access denied: employee not assigned to this project" || 
+		   err.Error() == "access denied: client can only view their own projects" {
+			utils.ErrorResponse(ctx, http.StatusForbidden, err.Error())
+		} else {
+			utils.ErrorResponse(ctx, http.StatusNotFound, err.Error())
+		}
 		return
 	}
 
@@ -47,6 +54,8 @@ func (c *ProjectController) GetByID(ctx *gin.Context) {
 
 func (c *ProjectController) Update(ctx *gin.Context) {
 	id := ctx.Param("id")
+	userID, _ := ctx.Get("user_id")
+	userRole, _ := ctx.Get("user_role")
 
 	var req models.UpdateProjectRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -54,9 +63,16 @@ func (c *ProjectController) Update(ctx *gin.Context) {
 		return
 	}
 
-	project, err := c.projectService.Update(id, &req)
+	project, err := c.projectService.Update(id, &req, userID.(string), userRole.(string))
 	if err != nil {
-		utils.ErrorResponse(ctx, http.StatusBadRequest, err.Error())
+		if err.Error() == "access denied: employee not assigned to this project" || 
+		   err.Error() == "access denied: client can only update their own projects" ||
+		   err.Error() == "access denied: employees can only update project status" ||
+		   err.Error() == "access denied: clients cannot update project status" {
+			utils.ErrorResponse(ctx, http.StatusForbidden, err.Error())
+		} else {
+			utils.ErrorResponse(ctx, http.StatusBadRequest, err.Error())
+		}
 		return
 	}
 
@@ -88,15 +104,16 @@ func (c *ProjectController) List(ctx *gin.Context) {
 		query.PageSize = 10
 	}
 
-	var clientID *string
+	userID, _ := ctx.Get("user_id")
 	userRole, _ := ctx.Get("user_role")
+	
+	var clientID *string
 	if userRole == "client" {
-		userIDVal, _ := ctx.Get("user_id")
-		uid := userIDVal.(string)
+		uid := userID.(string)
 		clientID = &uid
 	}
 
-	projects, total, err := c.projectService.List(&query, clientID)
+	projects, total, err := c.projectService.List(&query, clientID, userID.(string), userRole.(string))
 	if err != nil {
 		utils.ErrorResponse(ctx, http.StatusInternalServerError, err.Error())
 		return
@@ -119,6 +136,8 @@ func (c *ProjectController) List(ctx *gin.Context) {
 
 func (c *ProjectController) AssignEmployees(ctx *gin.Context) {
 	id := ctx.Param("id")
+	userID, _ := ctx.Get("user_id")
+	userRole, _ := ctx.Get("user_role")
 
 	var req models.AssignEmployeesRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -126,10 +145,39 @@ func (c *ProjectController) AssignEmployees(ctx *gin.Context) {
 		return
 	}
 
-	if err := c.projectService.AssignEmployees(id, &req); err != nil {
-		utils.ErrorResponse(ctx, http.StatusBadRequest, err.Error())
+	if err := c.projectService.AssignEmployees(id, &req, userID.(string), userRole.(string)); err != nil {
+		if err.Error() == "access denied: only admins can assign employees to projects" {
+			utils.ErrorResponse(ctx, http.StatusForbidden, err.Error())
+		} else {
+			utils.ErrorResponse(ctx, http.StatusBadRequest, err.Error())
+		}
 		return
 	}
 
 	utils.SuccessResponse(ctx, http.StatusOK, "Employees assigned successfully", nil)
+}
+
+func (c *ProjectController) UpdateProgress(ctx *gin.Context) {
+	id := ctx.Param("id")
+	userID, _ := ctx.Get("user_id")
+	userRole, _ := ctx.Get("user_role")
+
+	var req models.UpdateProjectProgressRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		utils.ErrorResponse(ctx, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	project, err := c.projectService.UpdateProjectProgress(id, &req, userID.(string), userRole.(string))
+	if err != nil {
+		if err.Error() == "access denied: employee not assigned to this project" || 
+		   err.Error() == "access denied: client can only update their own projects" {
+			utils.ErrorResponse(ctx, http.StatusForbidden, err.Error())
+		} else {
+			utils.ErrorResponse(ctx, http.StatusBadRequest, err.Error())
+		}
+		return
+	}
+
+	utils.SuccessResponse(ctx, http.StatusOK, "Project progress updated successfully", project)
 }

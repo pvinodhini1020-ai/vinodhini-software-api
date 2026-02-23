@@ -117,3 +117,34 @@ func (c *ServiceRequestController) List(ctx *gin.Context) {
 
 	utils.PaginatedSuccessResponse(ctx, http.StatusOK, requests, pagination)
 }
+
+func (c *ServiceRequestController) Approve(ctx *gin.Context) {
+	id := ctx.Param("id")
+
+	var req struct {
+		EmployeeIDs []string `json:"employee_ids" binding:"required"`
+	}
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		utils.ErrorResponse(ctx, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	project, err := c.serviceRequestService.Approve(id, &req.EmployeeIDs)
+	if err != nil {
+		utils.ErrorResponse(ctx, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	utils.SuccessResponse(ctx, http.StatusOK, "Service request approved and project created successfully", project)
+}
+
+func (c *ServiceRequestController) Reject(ctx *gin.Context) {
+	id := ctx.Param("id")
+
+	if err := c.serviceRequestService.Reject(id); err != nil {
+		utils.ErrorResponse(ctx, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	utils.SuccessResponse(ctx, http.StatusOK, "Service request rejected successfully", nil)
+}

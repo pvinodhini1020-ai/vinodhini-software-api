@@ -27,10 +27,17 @@ func NewUserController(userService services.UserService) *UserController {
 // @Router /api/users/{id} [get]
 func (c *UserController) GetByID(ctx *gin.Context) {
 	id := ctx.Param("id")
+	userID, _ := ctx.Get("user_id")
+	userRole, _ := ctx.Get("user_role")
 
-	user, err := c.userService.GetByID(id)
+	user, err := c.userService.GetByID(id, userID.(string), userRole.(string))
 	if err != nil {
-		utils.ErrorResponse(ctx, http.StatusNotFound, err.Error())
+		if err.Error() == "access denied: employees can only view their own profile" || 
+		   err.Error() == "access denied: clients can only view their own profile" {
+			utils.ErrorResponse(ctx, http.StatusForbidden, err.Error())
+		} else {
+			utils.ErrorResponse(ctx, http.StatusNotFound, err.Error())
+		}
 		return
 	}
 
@@ -48,6 +55,8 @@ func (c *UserController) GetByID(ctx *gin.Context) {
 // @Router /api/users/{id} [put]
 func (c *UserController) Update(ctx *gin.Context) {
 	id := ctx.Param("id")
+	userID, _ := ctx.Get("user_id")
+	userRole, _ := ctx.Get("user_role")
 
 	var req models.UpdateUserRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -55,9 +64,16 @@ func (c *UserController) Update(ctx *gin.Context) {
 		return
 	}
 
-	user, err := c.userService.Update(id, &req)
+	user, err := c.userService.Update(id, &req, userID.(string), userRole.(string))
 	if err != nil {
-		utils.ErrorResponse(ctx, http.StatusBadRequest, err.Error())
+		if err.Error() == "access denied: employees can only update their own profile" || 
+		   err.Error() == "access denied: clients can only update their own profile" ||
+		   err.Error() == "access denied: employees cannot modify role, department, or salary" ||
+		   err.Error() == "access denied: clients cannot modify role or company" {
+			utils.ErrorResponse(ctx, http.StatusForbidden, err.Error())
+		} else {
+			utils.ErrorResponse(ctx, http.StatusBadRequest, err.Error())
+		}
 		return
 	}
 
@@ -75,6 +91,8 @@ func (c *UserController) Update(ctx *gin.Context) {
 // @Router /api/users/{id} [patch]
 func (c *UserController) Patch(ctx *gin.Context) {
 	id := ctx.Param("id")
+	userID, _ := ctx.Get("user_id")
+	userRole, _ := ctx.Get("user_role")
 	
 	// Debug logging
 	fmt.Printf("PATCH request for user ID: %s\n", id)
@@ -89,10 +107,17 @@ func (c *UserController) Patch(ctx *gin.Context) {
 	// Debug logging
 	fmt.Printf("Update request: %+v\n", req)
 
-	user, err := c.userService.Update(id, &req)
+	user, err := c.userService.Update(id, &req, userID.(string), userRole.(string))
 	if err != nil {
 		fmt.Printf("Update error: %v\n", err)
-		utils.ErrorResponse(ctx, http.StatusBadRequest, "Failed to update user")
+		if err.Error() == "access denied: employees can only update their own profile" || 
+		   err.Error() == "access denied: clients can only update their own profile" ||
+		   err.Error() == "access denied: employees cannot modify role, department, or salary" ||
+		   err.Error() == "access denied: clients cannot modify role or company" {
+			utils.ErrorResponse(ctx, http.StatusForbidden, err.Error())
+		} else {
+			utils.ErrorResponse(ctx, http.StatusBadRequest, "Failed to update user")
+		}
 		return
 	}
 	
@@ -164,4 +189,23 @@ func (c *UserController) List(ctx *gin.Context) {
 	}
 
 	utils.PaginatedSuccessResponse(ctx, http.StatusOK, users, pagination)
+}
+
+// @Summary Get dashboard statistics
+// @Tags users
+// @Security BearerAuth
+// @Produce json
+// @Success 200 {object} utils.Response
+// @Router /api/users/dashboard/stats [get]
+func (c *UserController) GetDashboardStats(ctx *gin.Context) {
+	userID, _ := ctx.Get("user_id")
+	userRole, _ := ctx.Get("user_role")
+
+	stats, err := c.userService.GetDashboardStats(userID.(string), userRole.(string))
+	if err != nil {
+		utils.ErrorResponse(ctx, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	utils.SuccessResponse(ctx, http.StatusOK, "Dashboard statistics retrieved successfully", stats)
 }

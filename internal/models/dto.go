@@ -57,17 +57,22 @@ type CreateProjectRequest struct {
 	Name        string `json:"name" binding:"required"`
 	Description string `json:"description"`
 	ClientID    string `json:"client_id" binding:"required"`
-	Status      Status `json:"status" binding:"omitempty,oneof=active pending completed"`
+	Status      Status `json:"status" binding:"omitempty,oneof=active pending completed in_progress"`
+	EmployeeIDs []string `json:"employee_ids,omitempty"`
 }
 
 type UpdateProjectRequest struct {
 	Name        string `json:"name,omitempty"`
 	Description string `json:"description,omitempty"`
-	Status      Status `json:"status,omitempty" binding:"omitempty,oneof=active pending completed"`
+	Status      Status `json:"status,omitempty" binding:"omitempty,oneof=active pending completed rejected in_progress"`
 }
 
 type AssignEmployeesRequest struct {
 	EmployeeIDs []string `json:"employee_ids" binding:"required"`
+}
+
+type UpdateProjectProgressRequest struct {
+	Progress int `json:"progress" binding:"required,min=0,max=100"`
 }
 
 type CreateServiceRequestRequest struct {
@@ -77,9 +82,9 @@ type CreateServiceRequestRequest struct {
 }
 
 type UpdateServiceRequestRequest struct {
-	Title       string `json:"title,omitempty"`
-	Description string `json:"description,omitempty"`
-	Status      Status `json:"status,omitempty" binding:"omitempty,oneof=active pending completed"`
+	Title       string  `json:"title,omitempty"`
+	Description string  `json:"description,omitempty"`
+	Status      Status  `json:"status,omitempty" binding:"omitempty,oneof=active pending completed rejected"`
 	ProjectID   *string `json:"project_id,omitempty"`
 }
 
@@ -92,5 +97,17 @@ type PaginationQuery struct {
 	Page     int    `form:"page,default=1" binding:"omitempty,min=1"`
 	PageSize int    `form:"page_size,default=10" binding:"omitempty,min=1,max=100"`
 	Search   string `form:"search"`
-	Status   string `form:"status" binding:"omitempty,oneof=active pending completed"`
+	Status   string `form:"status" binding:"omitempty,oneof=active pending completed rejected"`
+}
+
+type CreateServiceTypeRequest struct {
+	Name        string `json:"name" binding:"required"`
+	Description string `json:"description"`
+	Status      Status `json:"status" binding:"required,oneof=active inactive"`
+}
+
+type UpdateServiceTypeRequest struct {
+	Name        string `json:"name,omitempty"`
+	Description string `json:"description,omitempty"`
+	Status      Status `json:"status,omitempty" binding:"omitempty,oneof=active inactive"`
 }

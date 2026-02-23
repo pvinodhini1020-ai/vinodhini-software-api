@@ -38,7 +38,20 @@ func (r *serviceRequestRepository) Create(request *models.ServiceRequest) error 
 
 	request.CreatedAt = time.Now()
 	request.UpdatedAt = time.Now()
-	_, err := r.collection.InsertOne(ctx, request)
+	
+	// Create document with explicit _id to ensure our custom ID is used
+	doc := bson.M{
+		"_id":         request.ID,
+		"title":        request.Title,
+		"description":  request.Description,
+		"client_id":    request.ClientID,
+		"project_id":   request.ProjectID,
+		"status":       request.Status,
+		"created_at":   request.CreatedAt,
+		"updated_at":   request.UpdatedAt,
+	}
+	
+	_, err := r.collection.InsertOne(ctx, doc)
 	return err
 }
 
@@ -84,6 +97,7 @@ func (r *serviceRequestRepository) Delete(id string) error {
 	return err
 }
 
+
 func (r *serviceRequestRepository) List(page, pageSize int, search string, status string, clientID *string) ([]models.ServiceRequest, int64, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -93,6 +107,7 @@ func (r *serviceRequestRepository) List(page, pageSize int, search string, statu
 		filter["$or"] = []bson.M{
 			{"title": bson.M{"$regex": search, "$options": "i"}},
 			{"description": bson.M{"$regex": search, "$options": "i"}},
+			{"_id": bson.M{"$regex": search, "$options": "i"}},
 		}
 	}
 	if status != "" {

@@ -35,7 +35,18 @@ func (r *messageRepository) Create(message *models.Message) error {
 
 	message.CreatedAt = time.Now()
 	message.UpdatedAt = time.Now()
-	_, err := r.collection.InsertOne(ctx, message)
+	
+	// Create document with explicit _id to ensure our custom ID is used
+	doc := bson.M{
+		"_id":         message.ID,
+		"content":      message.Content,
+		"sender_id":    message.SenderID,
+		"project_id":   message.ProjectID,
+		"created_at":   message.CreatedAt,
+		"updated_at":   message.UpdatedAt,
+	}
+	
+	_, err := r.collection.InsertOne(ctx, doc)
 	return err
 }
 
@@ -64,6 +75,7 @@ func (r *messageRepository) Delete(id string) error {
 	_, err := r.collection.DeleteOne(ctx, bson.M{"_id": id})
 	return err
 }
+
 
 func (r *messageRepository) ListByProject(projectID string, page, pageSize int) ([]models.Message, int64, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)

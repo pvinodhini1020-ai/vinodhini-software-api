@@ -16,8 +16,12 @@ func SetupRoutes(
 	serviceRequestController *controllers.ServiceRequestController,
 	messageController *controllers.MessageController,
 	clientController *controllers.ClientController,
+	serviceTypeController *controllers.ServiceTypeController,
 ) {
 	api := router.Group("/api")
+
+	// Public route for active service types (accessible by clients)
+	api.GET("/service-types", serviceTypeController.GetAll)
 
 	// Auth routes (public)
 	auth := api.Group("/auth")
@@ -38,6 +42,7 @@ func SetupRoutes(
 			users.PUT("/:id", userController.Update)
 			users.PATCH("/:id", userController.Patch)
 			users.DELETE("/:id", middleware.RoleMiddleware("admin"), userController.Delete)
+			users.GET("/dashboard/stats", middleware.RoleMiddleware("employee", "admin", "client"), userController.GetDashboardStats)
 		}
 
 		// Client routes
@@ -59,6 +64,7 @@ func SetupRoutes(
 			projects.PUT("/:id", middleware.RoleMiddleware("admin", "employee"), projectController.Update)
 			projects.DELETE("/:id", middleware.RoleMiddleware("admin"), projectController.Delete)
 			projects.POST("/:id/assign", middleware.RoleMiddleware("admin"), projectController.AssignEmployees)
+			projects.PATCH("/:id/progress", middleware.RoleMiddleware("admin", "employee", "client"), projectController.UpdateProgress)
 			projects.GET("/:id/messages", messageController.ListByProject)
 		}
 
@@ -70,11 +76,23 @@ func SetupRoutes(
 			serviceRequests.GET("/:id", serviceRequestController.GetByID)
 			serviceRequests.PUT("/:id", middleware.RoleMiddleware("admin", "employee"), serviceRequestController.Update)
 			serviceRequests.DELETE("/:id", middleware.RoleMiddleware("admin"), serviceRequestController.Delete)
+			serviceRequests.POST("/:id/approve", middleware.RoleMiddleware("admin"), serviceRequestController.Approve)
+			serviceRequests.POST("/:id/reject", middleware.RoleMiddleware("admin"), serviceRequestController.Reject)
+		}
+
+		// Service type routes (admin only for management)
+		serviceTypes := protected.Group("/service-types")
+		{
+			serviceTypes.POST("", middleware.RoleMiddleware("admin"), serviceTypeController.Create)
+			serviceTypes.GET("/:id", serviceTypeController.GetByID)
+			serviceTypes.PUT("/:id", middleware.RoleMiddleware("admin"), serviceTypeController.Update)
+			serviceTypes.DELETE("/:id", middleware.RoleMiddleware("admin"), serviceTypeController.Delete)
 		}
 
 		// Message routes
 		messages := protected.Group("/messages")
 		{
+			messages.GET("", messageController.List)
 			messages.POST("", messageController.Create)
 			messages.GET("/:id", messageController.GetByID)
 			messages.DELETE("/:id", messageController.Delete)

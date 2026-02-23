@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/vinodhini/software-api/internal/models"
@@ -16,6 +17,7 @@ type ProjectRepository interface {
 	Update(project *models.Project) error
 	Delete(id string) error
 	List(page, pageSize int, search string, status string, clientID *string) ([]models.Project, int64, error)
+	ListByEmployee(page, pageSize int, search string, status string, employeeID string) ([]models.Project, int64, error)
 	AssignEmployees(projectID string, employeeIDs []string) error
 }
 
@@ -40,8 +42,37 @@ func (r *projectRepository) Create(project *models.Project) error {
 	if project.EmployeeIDs == nil {
 		project.EmployeeIDs = []string{}
 	}
-	_, err := r.collection.InsertOne(ctx, project)
-	return err
+	
+	// Debug: Ensure project ID is set
+	if project.ID == "" {
+		return fmt.Errorf("project ID cannot be empty")
+	}
+	
+	// Debug: Log before insertion
+	fmt.Printf("Inserting project with _id: %s\n", project.ID)
+	
+	// Create document with explicit _id to ensure our custom ID is used
+	doc := bson.M{
+		"_id":         project.ID,
+		"name":         project.Name,
+		"description":  project.Description,
+		"client_id":    project.ClientID,
+		"status":       project.Status,
+		"progress":     project.Progress,
+		"employee_ids": project.EmployeeIDs,
+		"created_at":   project.CreatedAt,
+		"updated_at":   project.UpdatedAt,
+	}
+	
+	result, err := r.collection.InsertOne(ctx, doc)
+	if err != nil {
+		return fmt.Errorf("failed to insert project: %w", err)
+	}
+	
+	// Debug: Log the insertion result
+	fmt.Printf("Insert result: %+v, InsertedID: %v\n", result, result.InsertedID)
+	
+	return nil
 }
 
 func (r *projectRepository) FindByID(id string) (*models.Project, error) {
@@ -95,6 +126,7 @@ func (r *projectRepository) List(page, pageSize int, search string, status strin
 		filter["$or"] = []bson.M{
 			{"name": bson.M{"$regex": search, "$options": "i"}},
 			{"description": bson.M{"$regex": search, "$options": "i"}},
+			{"_id": bson.M{"$regex": search, "$options": "i"}},
 		}
 	}
 	if status != "" {
@@ -102,6 +134,52 @@ func (r *projectRepository) List(page, pageSize int, search string, status strin
 	}
 	if clientID != nil {
 		filter["client_id"] = *clientID
+	}
+
+	total, err := r.collection.CountDocuments(ctx, filter)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	skip := int64((page - 1) * pageSize)
+	opts := options.Find().SetSkip(skip).SetLimit(int64(pageSize))
+
+	cursor, err := r.collection.Find(ctx, filter, opts)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer cursor.Close(ctx)
+
+	var projects []models.Project
+	if err := cursor.All(ctx, &projects); err != nil {
+		return nil, 0, err
+	}
+
+	for i := range projects {
+		var client models.User
+		if err := r.userColl.FindOne(ctx, bson.M{"_id": projects[i].ClientID}).Decode(&client); err == nil {
+			projects[i].Client = &client
+		}
+	}
+
+	return projects, total, nil
+}
+
+
+func (r *projectRepository) ListByEmployee(page, pageSize int, search string, status string, employeeID string) ([]models.Project, int64, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	filter := bson.M{"employee_ids": employeeID}
+	if search != "" {
+		filter["$or"] = []bson.M{
+			{"name": bson.M{"$regex": search, "$options": "i"}},
+			{"description": bson.M{"$regex": search, "$options": "i"}},
+			{"_id": bson.M{"$regex": search, "$options": "i"}},
+		}
+	}
+	if status != "" {
+		filter["status"] = status
 	}
 
 	total, err := r.collection.CountDocuments(ctx, filter)
