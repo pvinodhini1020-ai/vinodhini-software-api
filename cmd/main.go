@@ -49,6 +49,7 @@ func main() {
 	messageRepo := repositories.NewMessageRepository(db)
 	counterRepo := repositories.NewCounterRepository(db)
 	serviceTypeRepo := repositories.NewServiceTypeRepository(db)
+	employeeRepo := repositories.NewEmployeeRepository(db)
 
 	// Initialize services
 	authService := services.NewAuthService(userRepo, cfg)
@@ -58,6 +59,7 @@ func main() {
 	serviceRequestService := services.NewServiceRequestService(serviceRequestRepo, projectRepo, counterRepo)
 	messageService := services.NewMessageService(messageRepo, counterRepo, projectRepo)
 	serviceTypeService := services.NewServiceTypeService(serviceTypeRepo)
+	employeeService := services.NewEmployeeService(employeeRepo, userRepo)
 
 	// Initialize controllers
 	authController := controllers.NewAuthController(authService)
@@ -67,6 +69,7 @@ func main() {
 	serviceRequestController := controllers.NewServiceRequestController(serviceRequestService)
 	messageController := controllers.NewMessageController(messageService)
 	serviceTypeController := controllers.NewServiceTypeController(serviceTypeService)
+	employeeController := controllers.NewEmployeeController(employeeService)
 
 	// Setup Gin
 	if cfg.Server.Env == "production" {
@@ -97,7 +100,7 @@ func main() {
 	})
 
 	// Setup routes
-	routes.SetupRoutes(router, cfg, authController, userController, projectController, serviceRequestController, messageController, clientController, serviceTypeController)
+	routes.SetupRoutes(router, cfg, authController, userController, projectController, serviceRequestController, messageController, clientController, serviceTypeController, employeeController)
 
 	// Server setup
 	srv := &http.Server{

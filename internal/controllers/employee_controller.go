@@ -20,11 +20,14 @@ func NewEmployeeController(employeeService services.EmployeeService) *EmployeeCo
 }
 
 type EmployeeResponse struct {
-	ID     string `json:"id"`
-	Name   string `json:"name"`
-	Email  string `json:"email"`
-	Role   string `json:"role"`
-	Status string `json:"status"`
+	ID         string `json:"id"`
+	Name       string `json:"name"`
+	Email      string `json:"email"`
+	Role       string `json:"role"`
+	Status     string `json:"status"`
+	Phone      string `json:"phone,omitempty"`
+	Department string `json:"department,omitempty"`
+	Salary     int    `json:"salary,omitempty"`
 }
 
 func (c *EmployeeController) Create(ctx *gin.Context) {
@@ -46,11 +49,14 @@ func (c *EmployeeController) Create(ctx *gin.Context) {
 	}
 
 	response := EmployeeResponse{
-		ID:     employee.UserID,
-		Name:   employee.Name,
-		Email:  employee.Email,
-		Role:   string(employee.Role),
-		Status: "active", // Default status for new employees
+		ID:         employee.UserID,
+		Name:       employee.Name,
+		Email:      employee.Email,
+		Role:       string(employee.Role),
+		Status:     employee.Status,
+		Phone:      employee.Phone,
+		Department:  employee.Department,
+		Salary:      employee.Salary,
 	}
 
 	utils.SuccessResponse(ctx, http.StatusCreated, "Employee created successfully", response)
@@ -72,11 +78,14 @@ func (c *EmployeeController) List(ctx *gin.Context) {
 	var response []EmployeeResponse
 	for _, emp := range employees {
 		response = append(response, EmployeeResponse{
-			ID:     emp.UserID,
-			Name:   emp.Name,
-			Email:  emp.Email,
-			Role:   string(emp.Role),
-			Status: "active", // Since we don't have status in User model, default to active
+			ID:         emp.UserID,
+			Name:       emp.Name,
+			Email:      emp.Email,
+			Role:       string(emp.Role),
+			Status:     emp.Status,
+			Phone:      emp.Phone,
+			Department:  emp.Department,
+			Salary:      emp.Salary,
 		})
 	}
 
@@ -103,11 +112,14 @@ func (c *EmployeeController) GetByID(ctx *gin.Context) {
 	}
 
 	response := EmployeeResponse{
-		ID:     employee.UserID,
-		Name:   employee.Name,
-		Email:  employee.Email,
-		Role:   string(employee.Role),
-		Status: "active", // Default status
+		ID:         employee.UserID,
+		Name:       employee.Name,
+		Email:      employee.Email,
+		Role:       string(employee.Role),
+		Status:     employee.Status,
+		Phone:      employee.Phone,
+		Department:  employee.Department,
+		Salary:      employee.Salary,
 	}
 
 	utils.SuccessResponse(ctx, http.StatusOK, "Employee retrieved successfully", response)

@@ -47,11 +47,15 @@ func (s *employeeService) Create(req *models.CreateEmployeeRequest) (*models.Use
 
 	// Create employee
 	employee := &models.User{
-		UserID:   userID,
-		Email:    req.Email,
-		Password: string(hashedPassword),
-		Name:     req.Name,
-		Role:     models.RoleEmployee,
+		UserID:     userID,
+		Email:      req.Email,
+		Password:    string(hashedPassword),
+		Name:       req.Name,
+		Role:       models.RoleEmployee,
+		Phone:       req.Phone,
+		Department:  req.Department,
+		Salary:      req.Salary,
+		Status:      req.Status,
 	}
 
 	if err := s.employeeRepo.Create(employee); err != nil {

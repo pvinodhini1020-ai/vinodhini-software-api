@@ -17,6 +17,7 @@ func SetupRoutes(
 	messageController *controllers.MessageController,
 	clientController *controllers.ClientController,
 	serviceTypeController *controllers.ServiceTypeController,
+	employeeController *controllers.EmployeeController,
 ) {
 	api := router.Group("/api")
 
@@ -34,6 +35,17 @@ func SetupRoutes(
 	protected := api.Group("")
 	protected.Use(middleware.AuthMiddleware(cfg.JWT.Secret))
 	{
+		// Employee routes
+		employees := protected.Group("/employees")
+		{
+			employees.POST("", middleware.RoleMiddleware("admin"), employeeController.Create)
+			employees.GET("", employeeController.List)
+			employees.GET("/:id", employeeController.GetByID)
+			employees.PUT("/:id", middleware.RoleMiddleware("admin"), userController.Update)
+			employees.PATCH("/:id", middleware.RoleMiddleware("admin"), userController.Patch)
+			employees.DELETE("/:id", middleware.RoleMiddleware("admin"), userController.Delete)
+		}
+
 		// User routes
 		users := protected.Group("/users")
 		{

@@ -123,7 +123,7 @@ func (r *serviceRequestRepository) List(page, pageSize int, search string, statu
 	}
 
 	skip := int64((page - 1) * pageSize)
-	opts := options.Find().SetSkip(skip).SetLimit(int64(pageSize))
+	opts := options.Find().SetSkip(skip).SetLimit(int64(pageSize)).SetSort(bson.M{"created_at": -1})
 
 	cursor, err := r.collection.Find(ctx, filter, opts)
 	if err != nil {
