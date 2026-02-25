@@ -86,8 +86,19 @@ func (r *projectRepository) FindByID(id string) (*models.Project, error) {
 	}
 
 	var client models.User
-	if err := r.userColl.FindOne(ctx, bson.M{"_id": project.ClientID}).Decode(&client); err == nil {
+	clientErr := r.userColl.FindOne(ctx, bson.M{"_id": project.ClientID}).Decode(&client)
+	if clientErr == nil {
 		project.Client = &client
+		fmt.Printf("Successfully loaded client %s for project %s in FindByID\n", client.Name, project.ID)
+	} else {
+		fmt.Printf("Failed to find client for project %s, client ID %s in FindByID: %v\n", project.ID, project.ClientID, clientErr)
+		// Create a default client object to prevent null reference issues
+		project.Client = &models.User{
+			UserID: project.ClientID,
+			Name:   "Unknown Client",
+			Email:  "unknown@example.com",
+			Role:   models.RoleClient,
+		}
 	}
 
 	if len(project.EmployeeIDs) > 0 {
@@ -142,7 +153,7 @@ func (r *projectRepository) List(page, pageSize int, search string, status strin
 	}
 
 	skip := int64((page - 1) * pageSize)
-	opts := options.Find().SetSkip(skip).SetLimit(int64(pageSize))
+	opts := options.Find().SetSkip(skip).SetLimit(int64(pageSize)).SetSort(bson.M{"created_at": -1})
 
 	cursor, err := r.collection.Find(ctx, filter, opts)
 	if err != nil {
@@ -157,8 +168,19 @@ func (r *projectRepository) List(page, pageSize int, search string, status strin
 
 	for i := range projects {
 		var client models.User
-		if err := r.userColl.FindOne(ctx, bson.M{"_id": projects[i].ClientID}).Decode(&client); err == nil {
+		clientErr := r.userColl.FindOne(ctx, bson.M{"_id": projects[i].ClientID}).Decode(&client)
+		if clientErr == nil {
 			projects[i].Client = &client
+			fmt.Printf("Successfully loaded client %s for project %s\n", client.Name, projects[i].ID)
+		} else {
+			fmt.Printf("Failed to find client for project %s, client ID %s: %v\n", projects[i].ID, projects[i].ClientID, clientErr)
+			// Create a default client object to prevent null reference issues
+			projects[i].Client = &models.User{
+				UserID: projects[i].ClientID,
+				Name:   "Unknown Client",
+				Email:  "unknown@example.com",
+				Role:   models.RoleClient,
+			}
 		}
 	}
 
@@ -188,7 +210,7 @@ func (r *projectRepository) ListByEmployee(page, pageSize int, search string, st
 	}
 
 	skip := int64((page - 1) * pageSize)
-	opts := options.Find().SetSkip(skip).SetLimit(int64(pageSize))
+	opts := options.Find().SetSkip(skip).SetLimit(int64(pageSize)).SetSort(bson.M{"created_at": -1})
 
 	cursor, err := r.collection.Find(ctx, filter, opts)
 	if err != nil {
@@ -203,8 +225,19 @@ func (r *projectRepository) ListByEmployee(page, pageSize int, search string, st
 
 	for i := range projects {
 		var client models.User
-		if err := r.userColl.FindOne(ctx, bson.M{"_id": projects[i].ClientID}).Decode(&client); err == nil {
+		clientErr := r.userColl.FindOne(ctx, bson.M{"_id": projects[i].ClientID}).Decode(&client)
+		if clientErr == nil {
 			projects[i].Client = &client
+			fmt.Printf("Successfully loaded client %s for project %s\n", client.Name, projects[i].ID)
+		} else {
+			fmt.Printf("Failed to find client for project %s, client ID %s: %v\n", projects[i].ID, projects[i].ClientID, clientErr)
+			// Create a default client object to prevent null reference issues
+			projects[i].Client = &models.User{
+				UserID: projects[i].ClientID,
+				Name:   "Unknown Client",
+				Email:  "unknown@example.com",
+				Role:   models.RoleClient,
+			}
 		}
 	}
 

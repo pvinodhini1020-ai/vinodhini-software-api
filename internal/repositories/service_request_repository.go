@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/vinodhini/software-api/internal/models"
@@ -66,8 +67,19 @@ func (r *serviceRequestRepository) FindByID(id string) (*models.ServiceRequest, 
 	}
 
 	var client models.User
-	if err := r.userColl.FindOne(ctx, bson.M{"_id": request.ClientID}).Decode(&client); err == nil {
+	clientErr := r.userColl.FindOne(ctx, bson.M{"_id": request.ClientID}).Decode(&client)
+	if clientErr == nil {
 		request.Client = &client
+		fmt.Printf("Successfully loaded client %s for service request %s\n", client.Name, request.ID)
+	} else {
+		fmt.Printf("Failed to find client for service request %s, client ID %s: %v\n", request.ID, request.ClientID, clientErr)
+		// Create a default client object to prevent null reference issues
+		request.Client = &models.User{
+			UserID: request.ClientID,
+			Name:   "Unknown Client",
+			Email:  "unknown@example.com",
+			Role:   models.RoleClient,
+		}
 	}
 
 	if request.ProjectID != nil {
@@ -138,8 +150,18 @@ func (r *serviceRequestRepository) List(page, pageSize int, search string, statu
 
 	for i := range requests {
 		var client models.User
-		if err := r.userColl.FindOne(ctx, bson.M{"_id": requests[i].ClientID}).Decode(&client); err == nil {
+		clientErr := r.userColl.FindOne(ctx, bson.M{"_id": requests[i].ClientID}).Decode(&client)
+		if clientErr == nil {
 			requests[i].Client = &client
+		} else {
+			fmt.Printf("Failed to find client for service request %s, client ID %s: %v\n", requests[i].ID, requests[i].ClientID, clientErr)
+			// Create a default client object to prevent null reference issues
+			requests[i].Client = &models.User{
+				UserID: requests[i].ClientID,
+				Name:   "Unknown Client",
+				Email:  "unknown@example.com",
+				Role:   models.RoleClient,
+			}
 		}
 	}
 
