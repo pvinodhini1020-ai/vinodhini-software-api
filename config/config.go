@@ -58,8 +58,8 @@ func Load() *Config {
 			Env:  getEnv("ENV", "development"),
 		},
 		MongoDB: MongoDBConfig{
-			URI:      getEnv("MONGO_URI", "mongodb://localhost:27017"),
-			Database: getEnv("MONGO_DATABASE", "vinodhini_api"),
+			URI:      getEnv("MONGO_URI"),
+			Database: getEnv("MONGO_DATABASE"),
 			Timeout:  mongoTimeout,
 		},
 		JWT: JWTConfig{
