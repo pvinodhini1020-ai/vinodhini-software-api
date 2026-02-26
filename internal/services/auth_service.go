@@ -50,6 +50,7 @@ func (s *authService) Register(req *models.RegisterRequest) (*models.User, error
 		Password: hashedPassword,
 		Name:     req.Name,
 		Role:     req.Role,
+		Status:   "active", // Set default status to active for new users
 	}
 
 	if err := s.userRepo.Create(user); err != nil {
@@ -70,6 +71,11 @@ func (s *authService) Login(req *models.LoginRequest) (*models.LoginResponse, er
 
 	if !utils.CheckPassword(req.Password, user.Password) {
 		return nil, errors.New("invalid credentials")
+	}
+
+	// Check if user is active
+	if user.Status != "" && user.Status != "active" {
+		return nil, errors.New("account is inactive. Please contact your system administrator to activate your account")
 	}
 
 	// Use UserID instead of MongoDB ObjectID for token generation

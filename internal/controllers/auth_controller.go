@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/vinodhini/software-api/internal/models"
@@ -56,7 +57,12 @@ func (c *AuthController) Login(ctx *gin.Context) {
 
 	response, err := c.authService.Login(&req)
 	if err != nil {
-		utils.ErrorResponse(ctx, http.StatusUnauthorized, err.Error())
+		// Check if it's an inactive user error and return 403 Forbidden
+		if strings.Contains(strings.ToLower(err.Error()), "inactive") {
+			utils.ErrorResponse(ctx, http.StatusForbidden, err.Error())
+		} else {
+			utils.ErrorResponse(ctx, http.StatusUnauthorized, err.Error())
+		}
 		return
 	}
 

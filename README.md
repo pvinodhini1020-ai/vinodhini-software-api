@@ -117,11 +117,7 @@ docker-compose up -d
 | Variable | Description | Default |
 |----------|-------------|---------|
 | SERVER_PORT | Server port | 8080 |
-| DB_HOST | Database host | localhost |
-| DB_PORT | Database port | 5432 |
-| DB_USER | Database user | postgres |
-| DB_PASSWORD | Database password | postgres |
-| DB_NAME | Database name | vinodhini_api |
+| DB_NAME | Database name | software_developer |
 | JWT_SECRET | JWT secret key | your-secret-key |
 | JWT_EXPIRY | JWT expiration | 24h |
 
